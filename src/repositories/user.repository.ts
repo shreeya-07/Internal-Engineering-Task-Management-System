@@ -1,14 +1,18 @@
 import {
-    User,
-    Prisma
+    User
 } from "../../generated/prisma/client.js";
 
-import { prisma } from "../configs/db.config.js";
+import {
+    prisma
+} from "../configs/db.config.js";
 
 export interface IUserRepository {
 
     create(
-        data: Prisma.UserCreateInput
+        fullName: string,
+        email: string,
+        passwordHash: string,
+        roleId: bigint
     ): Promise<User>;
 
     find(
@@ -20,11 +24,24 @@ export class UserRepository
     implements IUserRepository {
 
     async create(
-        data: Prisma.UserCreateInput
+        fullName: string,
+        email: string,
+        passwordHash: string,
+        roleId: bigint
     ): Promise<User> {
 
         return await prisma.user.create({
-            data
+            data: {
+                fullName,
+                email,
+                passwordHash,
+
+                role: {
+                    connect: {
+                        id: roleId
+                    }
+                }
+            }
         });
     }
 

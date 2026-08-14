@@ -1,11 +1,20 @@
 import bcrypt from "bcrypt";
 
-import { User } from "../../generated/prisma/client.js";
+import {
+    User
+} from "../../generated/prisma/client.js";
 
-import { IUserRepository } from "../repositories/user.repository.js";
-import { IRoleRepository } from "../repositories/role.repository.js";
+import {
+    IUserRepository
+} from "../repositories/user.repository.js";
 
-import { SignupDto } from "../dtos/auth.dto.js";
+import {
+    IRoleRepository
+} from "../repositories/role.repository.js";
+
+import {
+    SignupDto
+} from "../dtos/auth.dto.js";
 
 import {
     ConflictError,
@@ -13,12 +22,14 @@ import {
 } from "../utils/errors/app.error.js";
 
 export interface IAuthService {
+
     signup(
         data: SignupDto
     ): Promise<Omit<User, "passwordHash">>;
 }
 
-export class AuthService implements IAuthService {
+export class AuthService
+    implements IAuthService {
 
     constructor(
         private readonly userRepository: IUserRepository,
@@ -29,9 +40,11 @@ export class AuthService implements IAuthService {
         data: SignupDto
     ): Promise<Omit<User, "passwordHash">> {
 
-        // 1. Check whether email already exists
+        // Check whether email already exists
         const existingUser =
-            await this.userRepository.find(data.email);
+            await this.userRepository.find(
+                data.email
+            );
 
         if (existingUser) {
             throw new ConflictError(
@@ -39,9 +52,11 @@ export class AuthService implements IAuthService {
             );
         }
 
-        
+        // Find default EMPLOYEE role
         const employeeRole =
-            await this.roleRepository.findByName("EMPLOYEE");
+            await this.roleRepository.findByName(
+                "EMPLOYEE"
+            );
 
         if (!employeeRole) {
             throw new NotfoundError(
@@ -49,24 +64,24 @@ export class AuthService implements IAuthService {
             );
         }
 
-        
+        // Hash password
         const passwordHash =
-            await bcrypt.hash(data.password, 10);
+            await bcrypt.hash(
+                data.password,
+                10
+            );
 
-        
+        // Create user
+        // roleId is passed to repository
         const user =
-            await this.userRepository.create({
-                fullName: data.fullName,
-                email: data.email,
+            await this.userRepository.create(
+                data.fullName,
+                data.email,
                 passwordHash,
+                employeeRole.id
+            );
 
-                role: {
-                    connect: {
-                        id: employeeRole.id
-                    }
-                }
-            });
-
+        // Remove passwordHash from response
         const {
             passwordHash: _passwordHash,
             ...userWithoutPassword
